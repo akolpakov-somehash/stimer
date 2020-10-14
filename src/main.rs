@@ -35,28 +35,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let ts = date.unwrap().timestamp();
             let ts24 = ts + 24 * 60 * 60;
             let mut stmt = connection.prepare(
-                "SELECT record, start, end FROM tasks WHERE start >= ?1 AND start <= ?2",
+                "SELECT record, SUM(end - start) FROM tasks WHERE start >= ?1 AND start <= ?2 GROUP BY record",
             )?;
             let tasks = stmt.query_map(&[ts, ts24], |row| {
                 Ok(Task {
                     record: row.get(0)?,
-                    start: row.get(1)?,
-                    end: row.get(2)?,
-                    duration: 0,
+                    start: 0,
+                    end: 0,
+                    duration: row.get(1)?,
                 })
             })?;
             for t in tasks {
-                println!("Tasks: {}", t.unwrap().record);
+                let tt = t.unwrap();
+                println!("Task: {}. Duration: {}", tt.record, tt.duration);
             }
         }
         ST::Status {} => {
             let mut stmt =
-                connection.prepare("SELECT record, start, end FROM tasks WHERE end IS NULL")?;
+                connection.prepare("SELECT record, start FROM tasks WHERE end IS NULL")?;
             let tasks = stmt.query_map(NO_PARAMS, |row| {
                 Ok(Task {
                     record: row.get(0)?,
                     start: row.get(1)?,
-                    end: row.get(2)?,
+                    end: 0,
                     duration: 0,
                 })
             })?;
