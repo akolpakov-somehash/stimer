@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3.13"
+rusqlite = "0.24.1"
+chrono = "0.4.19"
