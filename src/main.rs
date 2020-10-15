@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let ts = date.unwrap().timestamp();
             let ts24 = ts + 24 * 60 * 60;
             let mut stmt = connection.prepare(
-                "SELECT record, SUM(end - start) FROM tasks WHERE start >= ?1 AND start <= ?2 GROUP BY record",
+                "SELECT record, SUM(end - start) FROM tasks WHERE start >= ?1 AND start <= ?2 AND end IS NOT NULL GROUP BY record",
             )?;
             let tasks = stmt.query_map(&[ts, ts24], |row| {
                 Ok(Task {
@@ -45,11 +45,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     duration: row.get(1)?,
                 })
             })?;
+            let mut total: u32 = 0;
             for t in tasks {
                 let tt = t.unwrap();
                 let duration = Duration::seconds(tt.duration as i64);
                 println!("Task: {}. Duration: {}h {}m {}s", tt.record, duration.num_hours(), duration.num_minutes() % 60, duration.num_seconds() % 60);
+                total = total + tt.duration;
             }
+            let total_duration = Duration::seconds(total as i64);
+            println!("Total this day: {}h {}m {}s", total_duration.num_hours(), total_duration.num_minutes() % 60, total_duration.num_seconds() % 60);
         }
         ST::Status {} => {
             let mut stmt =
@@ -79,7 +83,7 @@ enum ST {
     },
     #[structopt(alias="sp")]
     Stop,
-    #[structopt(alias="st")]
+    #[structopt(alias="ss")]
     Status,
     #[structopt(alias="r")]
     Report {
