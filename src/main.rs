@@ -1,5 +1,5 @@
 use chrono::{Local, TimeZone};
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, Duration};
 use rusqlite::NO_PARAMS;
 use rusqlite::{Connection, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -47,7 +47,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })?;
             for t in tasks {
                 let tt = t.unwrap();
-                println!("Task: {}. Duration: {}", tt.record, tt.duration);
+                let duration = Duration::seconds(tt.duration as i64);
+                println!("Task: {}. Duration: {}h {}m {}s", tt.record, duration.num_hours(), duration.num_minutes() % 60, duration.num_seconds() % 60);
             }
         }
         ST::Status {} => {
@@ -72,13 +73,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[derive(StructOpt)]
 #[structopt(about = "simple timer")]
 enum ST {
+    #[structopt(alias="st")]
     Start {
         record: String,
     },
+    #[structopt(alias="sp")]
     Stop,
+    #[structopt(alias="st")]
     Status,
+    #[structopt(alias="r")]
     Report {
-        #[structopt(default_value = "today", short)]
+        #[structopt(default_value = "today", short="d")]
         rdate: String,
     },
 }
