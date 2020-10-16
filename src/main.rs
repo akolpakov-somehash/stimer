@@ -4,6 +4,10 @@ use rusqlite::NO_PARAMS;
 use rusqlite::{Connection, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
+use std::fs;
+use std::io;
+use std::path::PathBuf;
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let connection = init_connection().unwrap();
@@ -12,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ST::Start { record } => {
             println!("Start {}", record);
             connection.execute(
-                "iNSERT INTO TASKS (record, start) VALUES (?1, ?2)",
+                "INSERT INTO TASKS (record, start) VALUES (?1, ?2)",
                 &[record, get_timestamp()],
             )?;
         }
@@ -100,7 +104,8 @@ struct Task {
 }
 
 fn init_connection() -> Result<Connection> {
-    let conn = Connection::open("stimer.db")?;
+    let path = init_path().unwrap();
+    let conn = Connection::open(&path)?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tasks (
              id INTEGER PRIMARY KEY,
@@ -111,6 +116,16 @@ fn init_connection() -> Result<Connection> {
         NO_PARAMS,
     )?;
     Ok(conn)
+}
+
+fn init_path() -> io::Result<PathBuf> {
+    let mut path = dirs_next::home_dir().unwrap();
+    path.push(".stimer");
+    if !path.exists() {
+        fs::create_dir(path.clone())?;
+    }
+    path.push("stimer.db");
+    Ok(path)
 }
 
 fn get_timestamp() -> String {
